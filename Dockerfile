@@ -25,6 +25,7 @@ EXPOSE 8080
 # Define environment variables
 ENV NODE_ENV production
 ENV PORT 8080
+ENV MONGODB_URI mongodb+srv://your_mongodb_uri_here
 
 # Run the application
 CMD ["node", "backend/server.js"]
