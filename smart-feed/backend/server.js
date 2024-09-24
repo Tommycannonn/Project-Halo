@@ -31,6 +31,30 @@ app.post('/api/posts', (req, res) => {
   res.status(201).json(post);
 });
 
+// New route for editing a post
+app.put('/api/posts/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const index = posts.findIndex(post => post.id === id);
+  if (index !== -1) {
+    posts[index] = { ...posts[index], ...req.body, id };
+    res.json(posts[index]);
+  } else {
+    res.status(404).json({ message: 'Post not found' });
+  }
+});
+
+// New route for deleting a post
+app.delete('/api/posts/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const index = posts.findIndex(post => post.id === id);
+  if (index !== -1) {
+    const deletedPost = posts.splice(index, 1)[0];
+    res.json(deletedPost);
+  } else {
+    res.status(404).json({ message: 'Post not found' });
+  }
+});
+
 app.listen(port, '0.0.0.0', () => {
   console.log(`Server is running on port: ${port}`);
 });
