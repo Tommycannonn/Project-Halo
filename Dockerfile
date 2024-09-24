@@ -22,8 +22,9 @@ RUN cd frontend && npm install && npm run build
 # Expose the port the app runs on
 EXPOSE 8080
 
-# Define environment variable
+# Define environment variables
 ENV NODE_ENV production
+ENV PORT 8080
 
 # Run the application
 CMD ["node", "backend/server.js"]
