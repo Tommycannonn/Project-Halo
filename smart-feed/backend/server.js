@@ -1,60 +1,90 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 
-// Load environment variables
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 8080;
+const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
 
-// Temporary in-memory storage for posts
-let posts = [];
+// Connect to MongoDB
+mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log('Connected to MongoDB'))
+  .catch((err) => console.error('MongoDB connection error:', err));
 
-// Routes
-app.get('/api/posts', (req, res) => {
-  res.json(posts);
+// Create a Post schema and model
+const postSchema = new mongoose.Schema({
+  title: String,
+  content: String,
+  aiScore: Number,
 });
 
-app.post('/api/posts', (req, res) => {
-  const post = {
-    id: Date.now(),
-    content: req.body.content,
-    author: req.body.author,
-    categories: req.body.categories,
-    aiScore: Math.floor(Math.random() * 100) // Placeholder for AI scoring
-  };
-  posts.push(post);
-  res.status(201).json(post);
-});
+const Post = mongoose.model('Post', postSchema);
 
-// New route for editing a post
-app.put('/api/posts/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  const index = posts.findIndex(post => post.id === id);
-  if (index !== -1) {
-    posts[index] = { ...posts[index], ...req.body, id };
-    res.json(posts[index]);
-  } else {
-    res.status(404).json({ message: 'Post not found' });
+// AI scoring function (placeholder)
+function calculateAIScore(post) {
+  // This is a placeholder. In a real application, you'd implement actual AI scoring logic here.
+  return Math.floor(Math.random() * 100);
+}
+
+// CRUD operations
+app.post('/posts', async (req, res) => {
+  try {
+    const { title, content } = req.body;
+    const aiScore = calculateAIScore({ title, content });
+    const post = new Post({ title, content, aiScore });
+    await post.save();
+    res.status(201).json(post);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
   }
 });
 
-// New route for deleting a post
-app.delete('/api/posts/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  const index = posts.findIndex(post => post.id === id);
-  if (index !== -1) {
-    const deletedPost = posts.splice(index, 1)[0];
-    res.json(deletedPost);
-  } else {
-    res.status(404).json({ message: 'Post not found' });
+app.get('/posts', async (req, res) => {
+  try {
+    const posts = await Post.find();
+    res.json(posts);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 });
 
-app.listen(port, '0.0.0.0', () => {
-  console.log(`Server is running on port: ${port}`);
+app.get('/posts/:id', async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+    res.json(post);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+app.put('/posts/:id', async (req, res) => {
+  try {
+    const { title, content } = req.body;
+    const aiScore = calculateAIScore({ title, content });
+    const post = await Post.findByIdAndUpdate(req.params.id, { title, content, aiScore }, { new: true });
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+    res.json(post);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+app.delete('/posts/:id', async (req, res) => {
+  try {
+    const post = await Post.findByIdAndDelete(req.params.id);
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+    res.json({ message: 'Post deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 });
