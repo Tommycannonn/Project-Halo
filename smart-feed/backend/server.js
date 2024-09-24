@@ -1,9 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const dotenv = require('dotenv');
-
-dotenv.config();
+const { MongoMemoryServer } = require('mongodb-memory-server');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -11,19 +9,20 @@ const PORT = process.env.PORT || 8080;
 app.use(cors());
 app.use(express.json());
 
-// Improved error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).send('Something went wrong!');
-});
-
-// Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log('Connected to MongoDB'))
-  .catch((err) => {
-    console.error('MongoDB connection error:', err);
+// Connect to the in-memory database
+async function connectToDatabase() {
+  try {
+    const mongoServer = await MongoMemoryServer.create();
+    const uri = mongoServer.getUri();
+    await mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    console.log('Connected to in-memory MongoDB');
+  } catch (error) {
+    console.error('MongoDB connection error:', error);
     process.exit(1);
-  });
+  }
+}
+
+connectToDatabase();
 
 // Create a Post schema and model
 const postSchema = new mongoose.Schema({
@@ -40,7 +39,7 @@ function calculateAIScore(post) {
 }
 
 // CRUD operations
-app.post('/posts', async (req, res, next) => {
+app.post('/posts', async (req, res) => {
   try {
     const { title, content } = req.body;
     const aiScore = calculateAIScore({ title, content });
@@ -48,30 +47,30 @@ app.post('/posts', async (req, res, next) => {
     await post.save();
     res.status(201).json(post);
   } catch (error) {
-    next(error);
+    res.status(400).json({ message: error.message });
   }
 });
 
-app.get('/posts', async (req, res, next) => {
+app.get('/posts', async (req, res) => {
   try {
     const posts = await Post.find();
     res.json(posts);
   } catch (error) {
-    next(error);
+    res.status(500).json({ message: error.message });
   }
 });
 
-app.get('/posts/:id', async (req, res, next) => {
+app.get('/posts/:id', async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
     if (!post) return res.status(404).json({ message: 'Post not found' });
     res.json(post);
   } catch (error) {
-    next(error);
+    res.status(500).json({ message: error.message });
   }
 });
 
-app.put('/posts/:id', async (req, res, next) => {
+app.put('/posts/:id', async (req, res) => {
   try {
     const { title, content } = req.body;
     const aiScore = calculateAIScore({ title, content });
@@ -79,45 +78,20 @@ app.put('/posts/:id', async (req, res, next) => {
     if (!post) return res.status(404).json({ message: 'Post not found' });
     res.json(post);
   } catch (error) {
-    next(error);
+    res.status(400).json({ message: error.message });
   }
 });
 
-app.delete('/posts/:id', async (req, res, next) => {
+app.delete('/posts/:id', async (req, res) => {
   try {
     const post = await Post.findByIdAndDelete(req.params.id);
     if (!post) return res.status(404).json({ message: 'Post not found' });
     res.json({ message: 'Post deleted successfully' });
   } catch (error) {
-    next(error);
-  }
-});
-
-// Add a health check endpoint
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'OK' });
-});
-
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server is running on port ${PORT}`);
-});
-    if (!post) return res.status(404).json({ message: 'Post not found' });
-    res.json({ message: 'Post deleted successfully' });
-  } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server is running on port ${PORT}`);
-});
-    if (!post) return res.status(404).json({ message: 'Post not found' });
-    res.json({ message: 'Post deleted successfully' });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
