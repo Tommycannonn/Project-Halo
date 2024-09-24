@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Feed</title>
+    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        function App() {
+            const [posts, setPosts] = React.useState([]);
+            const [newPost, setNewPost] = React.useState({ content: '', author: '', categories: '' });
+
+            React.useEffect(() => {
+                fetchPosts();
+            }, []);
+
+            const fetchPosts = async () => {
+                const response = await fetch('https://enginelabs-hcwfshj5.fly.dev/api/posts');
+                const data = await response.json();
+                setPosts(data);
+            };
+
+            const handleInputChange = (e) => {
+                setNewPost({ ...newPost, [e.target.name]: e.target.value });
+            };
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                const response = await fetch('https://enginelabs-hcwfshj5.fly.dev/api/posts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...newPost, categories: newPost.categories.split(',') }),
+                });
+                const data = await response.json();
+                setPosts([...posts, data]);
+                setNewPost({ content: '', author: '', categories: '' });
+            };
+
+            return (
+                <div>
+                    <h1>Smart Feed</h1>
+                    <form onSubmit={handleSubmit}>
+                        <input
+                            type="text"
+                            name="content"
+                            value={newPost.content}
+                            onChange={handleInputChange}
+                            placeholder="Post content"
+                            required
+                        />
+                        <input
+                            type="text"
+                            name="author"
+                            value={newPost.author}
+                            onChange={handleInputChange}
+                            placeholder="Author"
+                            required
+                        />
+                        <input
+                            type="text"
+                            name="categories"
+                            value={newPost.categories}
+                            onChange={handleInputChange}
+                            placeholder="Categories (comma-separated)"
+                            required
+                        />
+                        <button type="submit">Create Post</button>
+                    </form>
+                    <h2>Posts</h2>
+                    {posts.map((post) => (
+                        <div key={post.id}>
+                            <h3>{post.content}</h3>
+                            <p>Author: {post.author}</p>
+                            <p>Categories: {post.categories.join(', ')}</p>
+                            <p>AI Score: {post.aiScore}</p>
+                        </div>
+                    ))}
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
