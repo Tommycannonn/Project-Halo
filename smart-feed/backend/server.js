@@ -1,7 +1,9 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
-require('dotenv').config();
+const dotenv = require('dotenv');
+
+// Load environment variables
+dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 8080;
@@ -9,16 +11,25 @@ const port = process.env.PORT || 8080;
 app.use(cors());
 app.use(express.json());
 
-// Connect to MongoDB (you'll need to set up your MONGODB_URI in a .env file)
-mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log('MongoDB connected'))
-  .catch(err => console.log('MongoDB connection error:', err));
+// Temporary in-memory storage for posts
+let posts = [];
 
-// Import routes
-const postsRoutes = require('./routes/posts');
+// Routes
+app.get('/api/posts', (req, res) => {
+  res.json(posts);
+});
 
-// Use routes
-app.use('/api/posts', postsRoutes);
+app.post('/api/posts', (req, res) => {
+  const post = {
+    id: Date.now(),
+    content: req.body.content,
+    author: req.body.author,
+    categories: req.body.categories,
+    aiScore: Math.floor(Math.random() * 100) // Placeholder for AI scoring
+  };
+  posts.push(post);
+  res.status(201).json(post);
+});
 
 app.listen(port, '0.0.0.0', () => {
   console.log(`Server is running on port: ${port}`);
